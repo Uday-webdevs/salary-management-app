@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+model Country {
+  code      String     @id
+  name      String     @unique
+  currency  String
+  employees Employee[]
+}
+
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  employees Employee[]
+}
+
+model Employee {
+  id                 Int              @id @default(autoincrement())
+  employeeCode       String           @unique
+  firstName          String
+  lastName           String
+  email              String           @unique
+  countryCode        String
+  departmentId       Int
+  jobTitle           String
+  employmentStatus   EmploymentStatus @default(ACTIVE)
+  hireDate           DateTime
+  currency           String
+  baseSalaryMinor    Int
+  bonusMinor         Int
+  salaryEffectiveDate DateTime
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  version            Int              @default(1)
+  country            Country          @relation(fields: [countryCode], references: [code])
+  department         Department       @relation(fields: [departmentId], references: [id])
+  salaryHistory      SalaryHistory[]
+
+  @@index([lastName, firstName])
+  @@index([countryCode, employmentStatus])
+  @@index([departmentId, employmentStatus])
+  @@index([baseSalaryMinor])
+  @@index([employmentStatus])
+}
+
+model SalaryHistory {
+  id                    Int      @id @default(autoincrement())
+  employeeId            Int
+  previousBaseSalaryMinor Int
+  newBaseSalaryMinor    Int
+  previousBonusMinor    Int
+  newBonusMinor         Int
+  previousCurrency      String?
+  currency              String
+  effectiveDate         DateTime
+  changedAt             DateTime @default(now())
+  changedBy             String?
+  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, changedAt])
+}
