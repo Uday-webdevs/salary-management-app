@@ -1,0 +1,11 @@
+import { lazy, Suspense, useState } from 'react';
+import { ChevronDown, Command, LayoutDashboard, Search, UsersRound } from 'lucide-react';
+const Dashboard = lazy(() => import('./features/Dashboard'));
+const Employees = lazy(() => import('./features/Employees'));
+
+type Page = 'dashboard' | 'employees';
+
+export default function App() {
+  const [page, setPage] = useState<Page>('dashboard');
+  return <div className="app-shell"><aside className="sidebar"><a className="brand" href="#home" onClick={(event) => { event.preventDefault(); setPage('dashboard'); }}><span className="brand-mark"><Command size={19}/></span><span>people<span className="brand-os">OS</span></span></a><div className="workspace-switch"><div className="workspace-avatar">HR</div><div><strong>People workspace</strong><small>Compensation</small></div><ChevronDown size={15}/></div><div className="nav-label">WORKSPACE</div><nav aria-label="Main navigation"><button className={`nav-item ${page === 'dashboard' ? 'active' : ''}`} onClick={() => setPage('dashboard')}><LayoutDashboard size={18}/><span>Dashboard</span></button><button className={`nav-item ${page === 'employees' ? 'active' : ''}`} onClick={() => setPage('employees')}><UsersRound size={18}/><span>Employees</span></button></nav><div className="sidebar-bottom"><div className="user-profile"><span className="workspace-avatar"><Command size={15}/></span><span className="user-info"><strong>HR workspace</strong><small>Compensation management</small></span></div></div></aside><main className="main-area"><header className="topbar"><div className="breadcrumbs"><span>People</span><span className="crumb-divider">/</span><strong>{page === 'dashboard' ? 'Dashboard' : 'Employees'}</strong></div><div className="topbar-actions"><button className="top-search" onClick={() => setPage('employees')}><Search size={15}/><span>Search employees</span><kbd>⌘ K</kbd></button></div></header><Suspense fallback={<div className="page-loading" role="status">Loading workspace…</div>}>{page === 'dashboard' ? <Dashboard key="dashboard"/> : <Employees key="employees"/>}</Suspense><footer className="app-footer"><span><span className="footer-dot"/>Internal HR workspace</span><span>PeopleOS · Compensation management</span></footer></main></div>;
+}
