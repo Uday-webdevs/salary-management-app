@@ -1,4 +1,4 @@
-import { Prisma, type EmploymentStatus } from '../generated/prisma/index.js';
+import type { EmploymentStatus, Prisma } from '../generated/prisma/index.js';
 import { prisma } from '../config/database.js';
 
 export interface EmployeeFilters {

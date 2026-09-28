@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import { HttpError } from '../utils/http-error.js';
 
 export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
+  void _next;
   if (error instanceof SyntaxError && 'status' in error && error.status === 400) {
     res.status(400).json({ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } });
     return;
