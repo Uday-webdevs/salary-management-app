@@ -43,6 +43,8 @@ npm run seed
 
 The server reads `DATABASE_URL`, `PORT`, `CLIENT_ORIGIN`, and `NODE_ENV` from `server/.env`. Defaults are in [server/env.example](server/env.example). Never commit `.env`.
 
+Local development uses an explicit local developer identity so the app can run without an identity provider. The development server binds to loopback only. Before production, set `NODE_ENV=production`, `AUTH_MODE=oidc`, the OIDC settings described below, and an HTTPS `CLIENT_ORIGIN`; production startup rejects development authentication and missing OIDC credentials.
+
 The seed resets the employee/history rows before inserting its deterministic dataset. Do not run it against a database containing real HR data.
 
 ## Development and scripts
@@ -78,6 +80,14 @@ Salary values and salary bounds in API requests are integer minor units (USD 1.0
 
 Salary history records both the previous and new currency codes so a currency change never relabels the old amount or produces a cross-currency delta.
 
+## Authentication and authorization
+
+The server uses OpenID Connect Authorization Code Flow for organization sign-in. Configure `AUTH_ISSUER_URL`, `AUTH_CLIENT_ID`, `AUTH_CLIENT_SECRET`, and a random `AUTH_SESSION_SECRET` of at least 32 characters in the deployment secret store. `CLIENT_ORIGIN` is the public app origin and must use HTTPS in production. Register `${CLIENT_ORIGIN}/api/auth/callback` as the OIDC callback and `${CLIENT_ORIGIN}/` as the post-logout return URL. The app session cookie is HTTP-only, secure in production, SameSite=Lax, and has a 30-minute idle and 8-hour absolute lifetime.
+
+Configure the identity provider to emit the role claim named by `AUTH_ROLE_CLAIM` in the ID token. `AUTH_READ_ROLE` grants employee, salary-history, and dashboard read access. `AUTH_EDIT_ROLE` grants those read permissions plus compensation updates. Role names are configurable; users with no configured role receive 403 on protected data endpoints. The browser hides salary editing for read-only users, and the API enforces the permission independently.
+
+In development, `AUTH_MODE=development` supplies a local developer identity with read and edit access; this mode cannot be used with `NODE_ENV=production`. The salary-history `changedBy` field is still nullable and is not yet populated from the OIDC identity, so production audit attribution remains outstanding.
+
 ## Testing and verification
 
 Apply migrations and seed before running tests. API integration tests use the configured local SQLite database, insert a uniquely named fixture employee, then remove it. Tests cover directory query behavior, validation, details, salary/history/concurrency, and analytics. Frontend tests cover directory results, search/filter requests, API error recovery, and salary form validation/update behavior.
@@ -85,8 +95,8 @@ Apply migrations and seed before running tests. API integration tests use the co
 ## Decisions and limitations
 
 - SQLite keeps the assessment self-contained. A multi-instance production HR service would need an operationally managed database such as PostgreSQL.
-- Authentication, RBAC, approvals, payroll execution, tax/benefits, and external payroll/FX integrations are out of scope. This unauthenticated app is not safe to expose outside a trusted local environment.
-- Salary history has a nullable actor because there is no real authentication context.
+- OIDC authentication and reader/editor API authorization are implemented. Approval workflows, payroll execution, tax/benefits, and external payroll/FX integrations remain out of scope.
+- Salary history has a nullable actor and is not yet connected to the authenticated identity; add trustworthy change attribution and retention controls before production use.
 - Salary metrics remain in native currency; no FX conversion is available.
 - Seed records are synthetic and must not be mistaken for real compensation.
 - The dependency audit remediation removed the high-severity Prisma config advisory. The remaining audit findings are moderate and development-only in Vitest tooling; npm reports that its fix requires a Vitest 5 major upgrade, so the test runner should be upgraded and reverified as a separate change.

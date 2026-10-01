@@ -61,7 +61,7 @@ describe('employee directory', () => {
     vi.spyOn(api, 'salaryHistory').mockResolvedValue([]);
     const updateSpy = vi.spyOn(api, 'updateSalary').mockResolvedValue({ ...fixture, baseSalaryMinor: 9000000, totalCompensationMinor: 9300000, version: 3 });
     const user = userEvent.setup();
-    render(<Employees/>);
+    render(<Employees canEditCompensation/>);
     await user.click(await screen.findByRole('button', { name: /Avery Morgan/ }));
     await screen.findByText('Personal information');
     await user.click(screen.getByRole('button', { name: 'Edit salary' }));

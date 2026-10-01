@@ -20,3 +20,9 @@ export interface DashboardSummary {
 export interface CountryAnalytics { countryCode: string; country: string; currency: string; headcount: number; annualBasePayrollMinor: number }
 export interface DepartmentAnalytics { department: string; currency: string; headcount: number; annualBasePayrollMinor: number; averageSalaryMinor: number }
 export interface SalaryDistribution { currency: string; salaryBand: string; headcount: number }
+export interface AuthSession {
+  authenticated: true;
+  mode: 'development' | 'oidc';
+  user: { subject: string; name: string; email: string | null };
+  permissions: { readEmployeeData: boolean; editCompensation: boolean };
+}

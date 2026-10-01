@@ -1,4 +1,4 @@
-import type { Country, CountryAnalytics, DashboardSummary, Department, DepartmentAnalytics, Employee, PageResult, SalaryDistribution, SalaryHistory } from '../types/api';
+import type { AuthSession, Country, CountryAnalytics, DashboardSummary, Department, DepartmentAnalytics, Employee, PageResult, SalaryDistribution, SalaryHistory } from '../types/api';
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code: string) { super(message); }
@@ -6,7 +6,7 @@ export class ApiError extends Error {
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   let response: Response;
-  try { response = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } }); }
+  try { response = await fetch(url, { credentials: 'same-origin', ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } }); }
   catch { throw new ApiError('Unable to reach the server. Check your connection and try again.', 0, 'NETWORK_ERROR'); }
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
@@ -24,6 +24,7 @@ export interface EmployeeParams {
 }
 
 export const api = {
+  authSession: async () => (await request<{ data: AuthSession }>('/api/auth/me')).data,
   employees: async (params: EmployeeParams) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== '') query.set(key, String(value)); });

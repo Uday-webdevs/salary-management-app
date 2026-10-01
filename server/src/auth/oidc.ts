@@ -1,0 +1,32 @@
+import { auth } from 'express-openid-connect';
+import { env } from '../config/env.js';
+
+export const oidcMiddleware = env.AUTH_MODE === 'oidc'
+  ? auth({
+      issuerBaseURL: env.AUTH_ISSUER_URL!,
+      baseURL: new URL(env.CLIENT_ORIGIN).origin,
+      clientID: env.AUTH_CLIENT_ID!,
+      clientSecret: env.AUTH_CLIENT_SECRET!,
+      secret: env.AUTH_SESSION_SECRET!,
+      authRequired: false,
+      enableTelemetry: false,
+      authorizationParams: { response_type: 'code', scope: 'openid profile email' },
+      routes: {
+        login: '/api/auth/login',
+        callback: '/api/auth/callback',
+        logout: '/api/auth/logout',
+        postLogoutRedirect: '/'
+      },
+      session: {
+        name: 'peopleos_session',
+        rolling: true,
+        rollingDuration: 30 * 60,
+        absoluteDuration: 8 * 60 * 60,
+        cookie: {
+          httpOnly: true,
+          secure: env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        }
+      }
+    })
+  : undefined;
