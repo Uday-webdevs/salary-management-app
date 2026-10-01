@@ -17,6 +17,14 @@ app.use(cors({ origin: env.CLIENT_ORIGIN }));
 app.use(express.json({ limit: '32kb' }));
 app.get('/api/health', (_req, res) => res.json({ data: { status: 'ok' } }));
 if (oidcMiddleware) app.use(oidcMiddleware);
+app.get('/api/auth/login', (_req, res) => {
+  res.status(503).json({
+    error: {
+      code: 'OIDC_DISABLED',
+      message: 'Organization sign-in is disabled. Set AUTH_MODE=oidc in server/.env and restart the API.'
+    }
+  });
+});
 app.get('/api/auth/me', (req, res) => {
   const session = getAccessSession(req);
   if (!session) {

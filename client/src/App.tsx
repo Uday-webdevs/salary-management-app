@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { ChevronDown, Command, LayoutDashboard, LogOut, Search, UsersRound } from 'lucide-react';
+import { Building2, ChevronDown, Command, LayoutDashboard, LogOut, Search, UsersRound } from 'lucide-react';
 import { ApiError, api } from './services/api';
 import type { AuthSession } from './types/api';
 
@@ -28,9 +28,11 @@ export default function App() {
   useEffect(() => { loadSession(); }, []);
 
   if (authState === 'loading') return <div className="auth-state" role="status">Checking your sign-in…</div>;
-  if (authState === 'signed-out') return <AuthMessage title="Sign in to continue" message="Use your organization account to access employee and compensation data."><a className="button button-primary" href="/api/auth/login">Sign in</a></AuthMessage>;
-  if (authState === 'error' || !session) return <AuthMessage title="Unable to check your access" message="The server could not verify your session. Try again."><button className="button button-primary" onClick={loadSession}>Try again</button></AuthMessage>;
-  if (!session.permissions.readEmployeeData) return <AuthMessage title="Access not assigned" message="Your account is signed in, but it does not have an HR workspace role."><a className="button button-secondary" href="/api/auth/logout"><LogOut size={15}/> Sign out</a></AuthMessage>;
+  if (authState === 'signed-out') return <SignInPage onRetry={loadSession} />;
+  if (authState === 'error' || !session) return <AuthMessage title="We couldn’t verify your sign-in" message="The server did not confirm your session. You can try again or continue to your organization sign-in.">
+    <div className="auth-actions"><a className="button button-primary" href="/api/auth/login"><Building2 size={16}/> Continue with Microsoft</a><button className="button button-secondary" onClick={loadSession}>Try again</button></div>
+  </AuthMessage>;
+  if (!session.permissions.readEmployeeData) return <AuthMessage title="Access not assigned" message="You’re signed in, but your account doesn’t have an HR workspace role. Ask your administrator to assign Salary reader or Salary editor."><a className="button button-secondary" href="/api/auth/logout"><LogOut size={15}/> Sign out</a></AuthMessage>;
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -51,12 +53,20 @@ export default function App() {
           <a className="auth-action" href="/api/auth/logout" aria-label={`Sign out ${session.user.name}`}><LogOut size={15}/><span>Sign out</span></a>
         </div>
       </header>
+      {session.mode === 'development' && <div className="auth-mode-notice" role="status"><strong>Local development sign-in is active.</strong> To test Microsoft SSO, set <code>AUTH_MODE=oidc</code> in <code>server/.env</code> and restart the API.</div>}
       <Suspense fallback={<div className="page-loading" role="status">Loading workspace…</div>}>
         {page === 'dashboard' ? <Dashboard key="dashboard"/> : <Employees key="employees" canEditCompensation={session.permissions.editCompensation}/>}
       </Suspense>
       <footer className="app-footer"><span><span className="footer-dot"/>Internal HR workspace</span><span>PeopleOS · Compensation management</span></footer>
     </main>
   </div>;
+}
+
+function SignInPage({ onRetry }: { onRetry: () => void }) {
+  return <AuthMessage title="Sign in to PeopleOS" message="Use your organization’s Microsoft account to access employee and compensation information.">
+    <div className="auth-actions"><a className="button button-primary auth-ms-button" href="/api/auth/login"><Building2 size={16}/> Continue with Microsoft</a><button className="auth-retry" onClick={onRetry}>Check sign-in again</button></div>
+    <p className="auth-help">If sign-in doesn’t start, confirm the API is running with <code>AUTH_MODE=oidc</code> and that this app’s callback URL is registered in Microsoft Entra ID.</p>
+  </AuthMessage>;
 }
 
 function AuthMessage({ title, message, children }: { title: string; message: string; children: React.ReactNode }) {
