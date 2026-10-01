@@ -22,7 +22,7 @@ export const oidcMiddleware = env.AUTH_MODE === 'oidc'
       secret: env.AUTH_SESSION_SECRET!,
       authRequired: false,
       enableTelemetry: false,
-      authorizationParams: { response_type: 'code', scope: 'openid profile email' },
+      authorizationParams: { response_type: 'code', scope: 'openid profile email', prompt: 'consent' },
       routes: {
         login: '/api/auth/login',
         callback: '/api/auth/callback',
