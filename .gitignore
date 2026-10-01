@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+client/.vite/
 *.tsbuildinfo
 .env
 server/prisma/dev.db
