@@ -1,0 +1,5 @@
+node_modules/
+dist/
+coverage/
+client/.vite/
+server/src/generated/prisma/
