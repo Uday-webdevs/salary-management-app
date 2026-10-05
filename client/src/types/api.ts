@@ -10,6 +10,7 @@ export interface Employee {
 export interface SalaryHistory {
   id: number; employeeId: number; previousBaseSalaryMinor: number; newBaseSalaryMinor: number;
   previousBonusMinor: number; newBonusMinor: number; previousCurrency: string | null; currency: string; effectiveDate: string; changedAt: string; changedBy: string | null;
+  changedByTenantId: string | null; changedByObjectId: string | null; changedByName: string | null;
 }
 export interface PageResult<T> { data: T[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }
 export interface DashboardSummary {
@@ -24,5 +25,5 @@ export interface AuthSession {
   authenticated: true;
   mode: 'development' | 'oidc';
   user: { subject: string; name: string; email: string | null };
-  permissions: { readEmployeeData: boolean; editCompensation: boolean };
+  permissions: { readEmployeeData: boolean; editCompensation: boolean; viewSalaryHistory: boolean };
 }

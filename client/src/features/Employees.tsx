@@ -1,5 +1,5 @@
+import { ArrowDown, ArrowUp, ArrowUpDown, BriefcaseBusiness, CalendarDays, ChevronLeft, ChevronRight, Mail, MapPin, Pencil, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, ArrowUpDown, ArrowUp, ArrowDown, BriefcaseBusiness, Mail, MapPin, CalendarDays, Pencil, RefreshCw, X } from 'lucide-react';
 import { z } from 'zod';
 import { api, formatMoney, minorToMajor, type EmployeeParams } from '../services/api';
 import type { Country, Department, Employee, SalaryHistory } from '../types/api';
@@ -15,9 +15,9 @@ function inputAmount(minor: number, currency: string) { return String(minorToMaj
 const dateInput = (date: string) => new Date(date).toISOString().slice(0, 10);
 const fullDate = (date: string) => new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(date));
 
-interface Props { onEmployeeChanged?: () => void; canEditCompensation?: boolean }
+interface Props { onEmployeeChanged?: () => void; canEditCompensation?: boolean; canViewSalaryHistory?: boolean }
 
-export default function Employees({ onEmployeeChanged, canEditCompensation = false }: Props) {
+export default function Employees({ onEmployeeChanged, canEditCompensation = false, canViewSalaryHistory = false }: Props) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [searchDraft, setSearchDraft] = useState('');
@@ -73,7 +73,7 @@ export default function Employees({ onEmployeeChanged, canEditCompensation = fal
   const handleChanged = () => { void load(); onEmployeeChanged?.(); };
 
   return <div className="page-content employees-page">
-    {selected !== null ? <EmployeeDetail id={selected} onBack={() => setSelected(null)} onSaved={handleChanged} canEditCompensation={canEditCompensation}/> : <>
+    {selected !== null ? <EmployeeDetail id={selected} onBack={() => setSelected(null)} onSaved={handleChanged} canEditCompensation={canEditCompensation} canViewSalaryHistory={canViewSalaryHistory}/> : <>
       <div className="page-heading"><div><p className="eyebrow">PEOPLE DIRECTORY</p><h1>Employees</h1><p className="subtitle">Search, review, and manage compensation across your organization.</p></div><div className="directory-count"><strong>{pagination.total.toLocaleString()}</strong><span>employee records</span></div></div>
       <section className="panel directory-panel">
         <div className="toolbar"><div className="search-box"><Search size={17}/><input aria-label="Search employees" placeholder="Search name, ID, or email…" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)}/>{searchDraft && <button className="icon-button" aria-label="Clear search" onClick={() => setSearchDraft('')}><X size={14}/></button>}</div>
@@ -94,20 +94,20 @@ export default function Employees({ onEmployeeChanged, canEditCompensation = fal
   </div>;
 }
 
-function EmployeeDetail({ id, onBack, onSaved, canEditCompensation }: { id: number; onBack: () => void; onSaved: () => void; canEditCompensation: boolean }) {
+function EmployeeDetail({ id, onBack, onSaved, canEditCompensation, canViewSalaryHistory }: { id: number; onBack: () => void; onSaved: () => void; canEditCompensation: boolean; canViewSalaryHistory: boolean }) {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [history, setHistory] = useState<SalaryHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
-  const load = useCallback(async () => { setLoading(true); setError(''); try { const [record, records] = await Promise.all([api.employee(id), api.salaryHistory(id)]); setEmployee(record); setHistory(records); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load employee.'); } finally { setLoading(false); } }, [id]);
+  const load = useCallback(async () => { setLoading(true); setError(''); try { const [record, records] = await Promise.all([api.employee(id), canViewSalaryHistory ? api.salaryHistory(id) : Promise.resolve([])]); setEmployee(record); setHistory(records); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load employee.'); } finally { setLoading(false); } }, [id, canViewSalaryHistory]);
   useEffect(() => { void load(); }, [load]);
   if (loading) return <div className="page-loading" role="status">Loading employee details…</div>;
   if (error || !employee) return <div className="state-card error-state"><h2>Employee unavailable</h2><p>{error || 'Employee record not found.'}</p><button className="button button-secondary" onClick={onBack}>Back to employees</button></div>;
 
   return <div className="detail-page"><button className="back-link" onClick={onBack}><ChevronLeft size={16}/> Back to employees</button><div className="detail-title"><div className="detail-avatar">{employee.firstName[0]}{employee.lastName[0]}</div><div><p className="eyebrow">EMPLOYEE PROFILE · {employee.employeeCode}</p><h1>{employee.firstName} {employee.lastName}</h1><p className="subtitle">{employee.jobTitle} <span>·</span> {employee.department.name}</p></div><span className={`status-badge ${employee.employmentStatus.toLowerCase()}`}>{employee.employmentStatus === 'ON_LEAVE' ? 'On leave' : employee.employmentStatus[0] + employee.employmentStatus.slice(1).toLowerCase()}</span></div>
       <div className="detail-grid"><div className="detail-main"><section className="panel detail-panel"><div className="panel-heading"><div><h2>Compensation</h2><p>Current salary and bonus information</p></div>{canEditCompensation && <button className="button button-secondary edit-button" onClick={() => setEditing(true)}><Pencil size={14}/> Edit salary</button>}</div><div className="compensation-hero"><span>Annual base salary</span><strong>{formatMoney(employee.baseSalaryMinor, employee.currency)}</strong><small>Effective {fullDate(employee.salaryEffectiveDate)}</small></div><div className="compensation-stats"><div><span>Annual bonus</span><strong>{formatMoney(employee.bonusMinor, employee.currency)}</strong></div><div><span>Total compensation</span><strong>{formatMoney(employee.totalCompensationMinor, employee.currency)}</strong></div><div><span>Currency</span><strong>{employee.currency}</strong></div></div></section>
-      <section className="panel detail-panel history-panel"><div className="panel-heading"><div><h2>Salary history</h2><p>Recorded compensation changes</p></div><span className="history-count">{history.length} {history.length === 1 ? 'change' : 'changes'}</span></div>{history.length ? <div className="history-list">{history.map((item) => <SalaryHistoryEntry key={item.id} item={item}/>)}</div> : <div className="history-empty">No salary changes have been recorded yet.</div>}</section></div>
+      {canViewSalaryHistory && <section className="panel detail-panel history-panel"><div className="panel-heading"><div><h2>Salary history</h2><p>Recorded compensation changes</p></div><span className="history-count">{history.length} {history.length === 1 ? 'change' : 'changes'}</span></div>{history.length ? <div className="history-list">{history.map((item) => <SalaryHistoryEntry key={item.id} item={item}/>)}</div> : <div className="history-empty">No salary changes have been recorded yet.</div>}</section>}</div>
       <aside className="detail-aside"><section className="panel info-panel"><h2>Personal information</h2><InfoRow icon={Mail} label="Email" value={employee.email}/><InfoRow icon={MapPin} label="Country" value={`${employee.country.name} (${employee.country.code})`}/><InfoRow icon={BriefcaseBusiness} label="Employee code" value={employee.employeeCode}/></section><section className="panel info-panel"><h2>Employment</h2><InfoRow icon={BriefcaseBusiness} label="Department" value={employee.department.name}/><InfoRow icon={BriefcaseBusiness} label="Job title" value={employee.jobTitle}/><InfoRow icon={CalendarDays} label="Hire date" value={fullDate(employee.hireDate)}/><InfoRow icon={CalendarDays} label="Status" value={employee.employmentStatus === 'ON_LEAVE' ? 'On leave' : employee.employmentStatus[0] + employee.employmentStatus.slice(1).toLowerCase()}/></section><div className="profile-note">Employee information is maintained by HR. Salary values are recorded in the employee’s local currency.</div></aside></div>
     {editing && <SalaryEditor employee={employee} onClose={() => setEditing(false)} onSuccess={async () => { setEditing(false); await load(); onSaved(); }}/>}</div>;
 }
@@ -120,7 +120,10 @@ function SalaryHistoryEntry({ item }: { item: SalaryHistory }) {
   const delta = item.newBaseSalaryMinor - item.previousBaseSalaryMinor;
   const previousSalary = previousCurrency ? formatMoney(item.previousBaseSalaryMinor, previousCurrency) : `${item.previousBaseSalaryMinor} minor units · currency unrecorded`;
   const previousBonus = previousCurrency ? formatMoney(item.previousBonusMinor, previousCurrency) : `${item.previousBonusMinor} minor units · currency unrecorded`;
-  return <div className="history-row"><div className="history-dot"/><div className="history-info"><strong>Base salary {previousSalary} → {formatMoney(item.newBaseSalaryMinor, item.currency)}</strong><span>Effective {fullDate(item.effectiveDate)} · Updated {fullDate(item.changedAt)}</span><small>Bonus {previousBonus} → {formatMoney(item.newBonusMinor, item.currency)}{item.changedBy ? ` · by ${item.changedBy}` : ' · user attribution unavailable'}</small></div>{sameCurrency && <span className="history-delta">{delta >= 0 ? '+' : ''}{formatMoney(delta, item.currency)}</span>}</div>;
+  const actor = item.changedByName
+    ? `${item.changedByName} · Entra user ${item.changedByObjectId ?? 'ID unavailable'} · tenant ${item.changedByTenantId ?? 'unavailable'}`
+    : item.changedBy ? `subject ${item.changedBy}` : 'user attribution unavailable';
+  return <div className="history-row"><div className="history-dot"/><div className="history-info"><strong>Base salary {previousSalary} → {formatMoney(item.newBaseSalaryMinor, item.currency)}</strong><span>Effective {fullDate(item.effectiveDate)} · Updated {fullDate(item.changedAt)}</span><small>Bonus {previousBonus} → {formatMoney(item.newBonusMinor, item.currency)} · by {actor}</small></div>{sameCurrency && <span className="history-delta">{delta >= 0 ? '+' : ''}{formatMoney(delta, item.currency)}</span>}</div>;
 }
 
 function SalaryEditor({ employee, onClose, onSuccess }: { employee: Employee; onClose: () => void; onSuccess: () => Promise<void> }) {

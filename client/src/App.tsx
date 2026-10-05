@@ -55,7 +55,7 @@ export default function App() {
       </header>
       {session.mode === 'development' && <div className="auth-mode-notice" role="status"><strong>Local development sign-in is active.</strong> To test Microsoft SSO, set <code>AUTH_MODE=oidc</code> in <code>server/.env</code> and restart the API.</div>}
       <Suspense fallback={<div className="page-loading" role="status">Loading workspace…</div>}>
-        {page === 'dashboard' ? <Dashboard key="dashboard"/> : <Employees key="employees" canEditCompensation={session.permissions.editCompensation}/>}
+        {page === 'dashboard' ? <Dashboard key="dashboard"/> : <Employees key="employees" canEditCompensation={session.permissions.editCompensation} canViewSalaryHistory={session.permissions.viewSalaryHistory}/>}
       </Suspense>
       <footer className="app-footer"><span><span className="footer-dot"/>Internal HR workspace</span><span>PeopleOS · Compensation management</span></footer>
     </main>
