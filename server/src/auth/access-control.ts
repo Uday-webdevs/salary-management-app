@@ -5,7 +5,14 @@ export interface AccessSession {
   authenticated: true;
   mode: 'development' | 'oidc';
   user: { subject: string; name: string; email: string | null };
-  permissions: { readEmployeeData: boolean; editCompensation: boolean };
+  permissions: { readEmployeeData: boolean; editCompensation: boolean; viewSalaryHistory: boolean };
+}
+
+export interface SalaryHistoryActor {
+  subject: string;
+  tenantId: string | null;
+  objectId: string | null;
+  displayName: string;
 }
 
 function roleValues(value: unknown): string[] {
@@ -20,7 +27,7 @@ export function getAccessSession(request: Request): AccessSession | null {
       authenticated: true,
       mode: 'development',
       user: { subject: 'local-development-user', name: 'Local developer', email: null },
-      permissions: { readEmployeeData: true, editCompensation: true }
+      permissions: { readEmployeeData: true, editCompensation: true, viewSalaryHistory: true }
     };
   }
 
@@ -29,7 +36,8 @@ export function getAccessSession(request: Request): AccessSession | null {
   const claims = request.oidc.user ?? {};
   const roles = roleValues(claims[env.AUTH_ROLE_CLAIM]);
   const editCompensation = roles.includes(env.AUTH_EDIT_ROLE);
-  const readEmployeeData = editCompensation || roles.includes(env.AUTH_READ_ROLE);
+  const viewSalaryHistory = roles.includes(env.AUTH_AUDIT_ROLE);
+  const readEmployeeData = editCompensation || viewSalaryHistory || roles.includes(env.AUTH_READ_ROLE);
   const subject = typeof claims.sub === 'string' ? claims.sub.trim() : '';
   if (!subject) return null;
 
@@ -41,7 +49,34 @@ export function getAccessSession(request: Request): AccessSession | null {
       name: typeof claims.name === 'string' ? claims.name : 'Signed-in user',
       email: typeof claims.email === 'string' ? claims.email : null
     },
-    permissions: { readEmployeeData, editCompensation }
+    permissions: { readEmployeeData, editCompensation, viewSalaryHistory }
+  };
+}
+
+const ENTRA_ID = /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i;
+
+export function getSalaryHistoryActor(request: Request): SalaryHistoryActor | null {
+  const session = getAccessSession(request);
+  if (!session) return null;
+  if (session.mode === 'development') {
+    return {
+      subject: session.user.subject,
+      tenantId: null,
+      objectId: null,
+      displayName: session.user.name
+    };
+  }
+
+  const claims = request.oidc?.user ?? {};
+  const tenantId = typeof claims.tid === 'string' ? claims.tid.trim().toLowerCase() : '';
+  const objectId = typeof claims.oid === 'string' ? claims.oid.trim().toLowerCase() : '';
+  if (!ENTRA_ID.test(tenantId) || !ENTRA_ID.test(objectId)) return null;
+
+  return {
+    subject: session.user.subject,
+    tenantId,
+    objectId,
+    displayName: session.user.name.slice(0, 120)
   };
 }
 

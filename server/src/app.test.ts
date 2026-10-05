@@ -21,7 +21,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (employeeId) await prisma.employee.delete({ where: { id: employeeId } });
+  if (employeeId) {
+    await prisma.salaryHistory.deleteMany({ where: { employeeId } });
+    await prisma.employee.delete({ where: { id: employeeId } });
+  }
   if (departmentId && await prisma.employee.count({ where: { departmentId } }) === 0) {
     await prisma.department.deleteMany({ where: { id: departmentId, name: 'Test Operations' } });
   }

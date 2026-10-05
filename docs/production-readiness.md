@@ -10,12 +10,13 @@ Use this checklist before exposing the salary management system to production us
 - The API maps the configured role claim to read and compensation-edit permissions and checks those permissions on protected routes.
 - Before release, verify the production tenant, app registration, callback URL, role assignments, HTTPS origin, and deployment secrets. Confirm that a user without either configured role cannot read salary data.
 
-### 2. Record the authenticated actor on every compensation change — Implemented; verify audit policy
+### 2. Record the authenticated actor on every compensation change — Implemented; verify deployment configuration
 
-- New salary history rows record the authenticated server session’s stable subject (`sub`); the actor is never accepted from the browser request body.
+- New salary history rows record the authenticated server session’s subject (`sub`), Entra tenant ID (`tid`), user object ID (`oid`), and display-name snapshot; the actor is never accepted from the browser request body. Administrators can resolve `tid` + `oid` to the Entra user in that tenant. Existing rows retain their current actor value and cannot be reliably backfilled.
 - The controller passes the actor from the session to the service, and the history insert shares a transaction with the compensation update. Updates fail closed when there is no authenticated session subject.
-- Existing historical rows remain nullable; they have no trustworthy actor to backfill. Confirm how administrators will map stored subjects to Entra users and define audit retention and access controls before release.
-- Verify in the deployment environment that successful updates are attributable, failed or stale updates do not create history rows, and a caller cannot spoof another actor.
+- Only the `AUTH_AUDIT_ROLE` role (default `salary:audit:admin`) can retrieve history. Assign that Entra application role only to designated audit administrators; the API denies history requests for other roles.
+- History is purged when `changedAt` is older than three years. The purge runs at API startup and every 24 hours. The database relation prevents employee deletion from cascading into early history deletion.
+- Verify in the deployment environment that successful updates are attributable, failed or stale updates do not create history rows, a caller cannot spoof another actor, non-admin users receive 403, and expired records are purged.
 
 ## P1 — Operational controls to complete before or during rollout
 

@@ -18,7 +18,7 @@ Money uses integer minor units. Supported currencies currently follow the two-mi
 
 ## Audit and identity
 
-Salary updates and history inserts share a database transaction. A monotonically incremented version prevents stale edits from overwriting newer compensation. Authentication, RBAC, approval, and a trustworthy employee identity provider are not implemented; `changedBy` is therefore null. Do not expose this unauthenticated application to an untrusted network. A production HR service needs SSO, role checks, authorization at every API boundary, protected audit retention, and policy-led approvals.
+Salary updates and history inserts share a database transaction. A monotonically incremented version prevents stale edits from overwriting newer compensation. New rows store the OIDC subject, Entra tenant and object IDs, and a display-name snapshot. Salary-history reads require the dedicated audit-administrator role, and rows older than three years are purged daily. Existing rows may have null or legacy actor identifiers. Approval workflows remain policy-dependent and are not implemented.
 
 ## Scaling beyond this assessment
 

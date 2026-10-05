@@ -68,7 +68,11 @@ model SalaryHistory {
   effectiveDate         DateTime
   changedAt             DateTime @default(now())
   changedBy             String?
-  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  changedByTenantId     String?
+  changedByObjectId     String?
+  changedByName         String?
+  employee              Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
 
   @@index([employeeId, changedAt])
+  @@index([changedAt])
 }

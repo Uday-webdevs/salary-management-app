@@ -74,7 +74,7 @@ Lint is configured with ESLint 9 and typescript-eslint. Per request, lint was no
 - `GET /api/employees?page=1&pageSize=25&search=alice&country=IN&department=Engineering&status=ACTIVE&currency=INR&minSalary=5000000&maxSalary=15000000&sortBy=baseSalary&sortOrder=desc`
 - `GET /api/employees/:id`
 - `PATCH /api/employees/:id/salary`
-- `GET /api/employees/:id/salary-history`
+- `GET /api/employees/:id/salary-history` (audit administrators only)
 - `GET /api/employees/countries` and `GET /api/employees/departments`
 - `GET /api/dashboard/summary`, `by-country`, `by-department`, and `salary-distribution`
 
@@ -86,9 +86,9 @@ Salary history records both the previous and new currency codes so a currency ch
 
 The server uses OpenID Connect Authorization Code Flow for organization sign-in and requests `prompt=consent` on each sign-in attempt, asking Entra to show its app-consent prompt after authentication. Tenant consent policies may require an administrator to approve the requested permissions. Configure `AUTH_ISSUER_URL`, `AUTH_CLIENT_ID`, `AUTH_CLIENT_SECRET`, and a random `AUTH_SESSION_SECRET` of at least 32 characters in the deployment secret store. `AUTH_ISSUER_URL` normally uses the authority root (for Microsoft Entra ID, `https://login.microsoftonline.com/<tenant-id>/v2.0`); if you paste its full `/.well-known/openid-configuration` URL, the server removes that suffix automatically. `CLIENT_ORIGIN` is the public app origin and must use HTTPS in production. Register `${CLIENT_ORIGIN}/api/auth/callback` as the OIDC callback and `${CLIENT_ORIGIN}/` as the post-logout return URL. The app session cookie is HTTP-only, secure in production, SameSite=Lax, and has a 30-minute idle and 8-hour absolute lifetime.
 
-Configure the identity provider to emit the role claim named by `AUTH_ROLE_CLAIM` in the ID token. `AUTH_READ_ROLE` grants employee, salary-history, and dashboard read access. `AUTH_EDIT_ROLE` grants those read permissions plus compensation updates. Role names are configurable; users with no configured role receive 403 on protected data endpoints. The browser hides salary editing for read-only users, and the API enforces the permission independently.
+Configure Entra to emit the role claim named by `AUTH_ROLE_CLAIM` in the ID token and assign the application roles. `AUTH_READ_ROLE` grants employee and dashboard read access. `AUTH_EDIT_ROLE` grants those read permissions plus compensation updates. `AUTH_AUDIT_ROLE` (default `salary:audit:admin`) grants employee read access and salary-history access; only this role can view history. The API enforces each permission independently of the UI. New history rows store the OIDC subject plus Entra tenant ID and user object ID so an administrator can resolve the actor in the correct tenant.
 
-In development, `AUTH_MODE=development` supplies a local developer identity with read and edit access; this mode cannot be used with `NODE_ENV=production`. The salary-history `changedBy` field is still nullable and is not yet populated from the OIDC identity, so production audit attribution remains outstanding.
+In development, `AUTH_MODE=development` supplies a local developer identity with read, edit, and audit access; this mode cannot be used with `NODE_ENV=production`. Existing history rows can have null attribution because there is no trustworthy way to backfill their original actors. History is retained for three years from `changedAt`; the API purges expired rows at startup and once per day. Employee deletion is restricted while salary history exists.
 
 ## Testing and verification
 
@@ -97,15 +97,14 @@ Apply migrations and seed before running tests. API integration tests use the co
 ## Decisions and limitations
 
 - SQLite keeps the assessment self-contained. A multi-instance production HR service would need an operationally managed database such as PostgreSQL.
-- OIDC authentication and reader/editor API authorization are implemented. Approval workflows, payroll execution, tax/benefits, and external payroll/FX integrations remain out of scope.
-- Salary history has a nullable actor and is not yet connected to the authenticated identity; add trustworthy change attribution and retention controls before production use.
+- OIDC authentication, reader/editor API authorization, audit-administrator-only history access, actor attribution, and three-year history retention are implemented. Entra role assignment and retention behavior still need deployment verification. Approval workflows, payroll execution, tax/benefits, and external payroll/FX integrations remain out of scope.
 - Salary metrics remain in native currency; no FX conversion is available.
 - Seed records are synthetic and must not be mistaken for real compensation.
 - The dependency audit remediation removed the high-severity Prisma config advisory. The remaining audit findings are moderate and development-only in Vitest tooling; npm reports that its fix requires a Vitest 5 major upgrade, so the test runner should be upgraded and reverified as a separate change.
 
 ## Suggested next work
 
-Add SSO and policy-based authorization, validate audit retention requirements, add a currency conversion policy only if finance requires consolidated reporting, and measure query plans under representative load before tuning.
+Validate audit role assignments and the three-year retention policy in deployment, add an approval workflow if organization policy requires it, add a currency conversion policy only if finance requires consolidated reporting, and measure query plans under representative load before tuning.
 
 ## Suggested commit boundaries
 

@@ -15,7 +15,8 @@ const envSchema = z.object({
   AUTH_SESSION_SECRET: z.string().min(32).optional(),
   AUTH_ROLE_CLAIM: z.string().min(1).default('roles'),
   AUTH_READ_ROLE: z.string().min(1).default('salary:read'),
-  AUTH_EDIT_ROLE: z.string().min(1).default('salary:edit')
+  AUTH_EDIT_ROLE: z.string().min(1).default('salary:edit'),
+  AUTH_AUDIT_ROLE: z.string().min(1).default('salary:audit:admin')
 }).superRefine((config, context) => {
   if (config.AUTH_MODE === 'development' && !['development', 'test'].includes(process.env.NODE_ENV ?? '')) {
     context.addIssue({ code: 'custom', path: ['AUTH_MODE'], message: 'Development authentication requires NODE_ENV=development or NODE_ENV=test' });
@@ -30,8 +31,8 @@ const envSchema = z.object({
     }
   }
 
-  if (config.AUTH_READ_ROLE === config.AUTH_EDIT_ROLE) {
-    context.addIssue({ code: 'custom', path: ['AUTH_EDIT_ROLE'], message: 'Read and edit role values must be different' });
+  if (new Set([config.AUTH_READ_ROLE, config.AUTH_EDIT_ROLE, config.AUTH_AUDIT_ROLE]).size !== 3) {
+    context.addIssue({ code: 'custom', path: ['AUTH_AUDIT_ROLE'], message: 'Read, edit, and audit role values must be different' });
   }
 
   if (config.NODE_ENV === 'production' && new URL(config.CLIENT_ORIGIN).protocol !== 'https:') {

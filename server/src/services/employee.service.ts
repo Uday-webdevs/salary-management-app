@@ -3,6 +3,7 @@ import { prisma } from '../config/database.js';
 import * as repository from '../repositories/employee.repository.js';
 import type { employeeQuerySchema, salaryUpdateSchema } from '../schemas/employee.schema.js';
 import { HttpError } from '../utils/http-error.js';
+import type { SalaryHistoryActor } from '../auth/access-control.js';
 
 const supportedCurrencies = new Set(['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR', 'SGD', 'JPY']);
 
@@ -35,8 +36,8 @@ export async function getSalaryHistory(id: number) {
   return repository.listSalaryHistory(id);
 }
 
-export async function updateSalary(id: number, input: z.infer<typeof salaryUpdateSchema>, changedBy: string) {
-  const actorSubject = changedBy.trim();
+export async function updateSalary(id: number, input: z.infer<typeof salaryUpdateSchema>, actor: SalaryHistoryActor) {
+  const actorSubject = actor.subject.trim();
   if (!actorSubject) throw new HttpError(401, 'UNAUTHENTICATED', 'A signed-in actor is required to update compensation');
   if (!supportedCurrencies.has(input.currency)) throw new HttpError(400, 'VALIDATION_ERROR', 'Unsupported currency');
   const effectiveDate = new Date(`${input.effectiveDate}T00:00:00.000Z`);
@@ -59,7 +60,10 @@ export async function updateSalary(id: number, input: z.infer<typeof salaryUpdat
         previousCurrency: current.currency,
         currency: input.currency,
         effectiveDate,
-        changedBy: actorSubject
+        changedBy: actorSubject,
+        changedByTenantId: actor.tenantId,
+        changedByObjectId: actor.objectId,
+        changedByName: actor.displayName
       }
     });
   });
