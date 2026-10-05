@@ -30,7 +30,8 @@ export function getAccessSession(request: Request): AccessSession | null {
   const roles = roleValues(claims[env.AUTH_ROLE_CLAIM]);
   const editCompensation = roles.includes(env.AUTH_EDIT_ROLE);
   const readEmployeeData = editCompensation || roles.includes(env.AUTH_READ_ROLE);
-  const subject = typeof claims.sub === 'string' ? claims.sub : 'unknown-user';
+  const subject = typeof claims.sub === 'string' ? claims.sub.trim() : '';
+  if (!subject) return null;
 
   return {
     authenticated: true,

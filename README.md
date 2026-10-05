@@ -16,6 +16,8 @@ Dashboard payroll and salary statistics use **base salary only**, include active
 
 React + TypeScript + Vite + Tailwind CSS client → JSON REST API → Express controllers and services → Prisma repositories → SQLite. Zod validates request input. Recharts provides dashboard visualizations. See [architecture](docs/architecture.md), [trade-offs](docs/tradeoffs.md), and [performance notes](docs/performance.md).
 
+Before deployment, use the [production readiness checklist](docs/production-readiness.md) to track required implementation and operational work.
+
 ## Project structure
 
 ```text

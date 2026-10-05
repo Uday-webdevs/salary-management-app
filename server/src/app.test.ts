@@ -72,7 +72,13 @@ describe('employee API', () => {
     const history = await request(app).get('/api/employees/' + employeeId + '/salary-history');
     expect(history.status).toBe(200);
     expect(history.body.data).toHaveLength(1);
-    expect(history.body.data[0]).toMatchObject({ previousBaseSalaryMinor: 8500000, newBaseSalaryMinor: 9000000, previousCurrency: 'USD', currency: 'EUR', changedBy: null });
+    expect(history.body.data[0]).toMatchObject({
+      previousBaseSalaryMinor: 8500000,
+      newBaseSalaryMinor: 9000000,
+      previousCurrency: 'USD',
+      currency: 'EUR',
+      changedBy: 'local-development-user'
+    });
     expect((await request(app).patch('/api/employees/' + employeeId + '/salary').send(body)).status).toBe(409);
     expect((await request(app).get('/api/employees/' + employeeId + '/salary-history')).body.data).toHaveLength(1);
   });

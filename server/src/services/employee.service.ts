@@ -1,8 +1,8 @@
+import type { z } from 'zod';
 import { prisma } from '../config/database.js';
 import * as repository from '../repositories/employee.repository.js';
-import { HttpError } from '../utils/http-error.js';
-import type { z } from 'zod';
 import type { employeeQuerySchema, salaryUpdateSchema } from '../schemas/employee.schema.js';
+import { HttpError } from '../utils/http-error.js';
 
 const supportedCurrencies = new Set(['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR', 'SGD', 'JPY']);
 
@@ -35,7 +35,9 @@ export async function getSalaryHistory(id: number) {
   return repository.listSalaryHistory(id);
 }
 
-export async function updateSalary(id: number, input: z.infer<typeof salaryUpdateSchema>) {
+export async function updateSalary(id: number, input: z.infer<typeof salaryUpdateSchema>, changedBy: string) {
+  const actorSubject = changedBy.trim();
+  if (!actorSubject) throw new HttpError(401, 'UNAUTHENTICATED', 'A signed-in actor is required to update compensation');
   if (!supportedCurrencies.has(input.currency)) throw new HttpError(400, 'VALIDATION_ERROR', 'Unsupported currency');
   const effectiveDate = new Date(`${input.effectiveDate}T00:00:00.000Z`);
   await prisma.$transaction(async (tx) => {
@@ -47,11 +49,19 @@ export async function updateSalary(id: number, input: z.infer<typeof salaryUpdat
       data: { baseSalaryMinor: input.baseSalaryMinor, bonusMinor: input.bonusMinor, currency: input.currency, salaryEffectiveDate: effectiveDate, version: { increment: 1 } }
     });
     if (changed.count !== 1) throw new HttpError(409, 'STALE_UPDATE', 'Employee compensation changed since it was loaded. Refresh and try again.');
-    await tx.salaryHistory.create({ data: {
-      employeeId: id, previousBaseSalaryMinor: current.baseSalaryMinor, newBaseSalaryMinor: input.baseSalaryMinor,
-      previousBonusMinor: current.bonusMinor, newBonusMinor: input.bonusMinor, previousCurrency: current.currency, currency: input.currency,
-      effectiveDate, changedBy: null
-    } });
+    await tx.salaryHistory.create({
+      data: {
+        employeeId: id,
+        previousBaseSalaryMinor: current.baseSalaryMinor,
+        newBaseSalaryMinor: input.baseSalaryMinor,
+        previousBonusMinor: current.bonusMinor,
+        newBonusMinor: input.bonusMinor,
+        previousCurrency: current.currency,
+        currency: input.currency,
+        effectiveDate,
+        changedBy: actorSubject
+      }
+    });
   });
   return getEmployee(id);
 }
