@@ -1,14 +1,14 @@
-import express from 'express';
-import { resolve } from 'node:path';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
-import { env } from './config/env.js';
-import { employeeRouter } from './routes/employee.routes.js';
-import { dashboardRouter } from './routes/dashboard.routes.js';
-import { errorHandler } from './middleware/error-handler.js';
-import { HttpError } from './utils/http-error.js';
-import { oidcMiddleware } from './auth/oidc.js';
+import { resolve } from 'node:path';
 import { getAccessSession } from './auth/access-control.js';
+import { oidcMiddleware } from './auth/oidc.js';
+import { env } from './config/env.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { dashboardRouter } from './routes/dashboard.routes.js';
+import { employeeRouter } from './routes/employee.routes.js';
+import { HttpError } from './utils/http-error.js';
 
 export const app = express();
 app.disable('x-powered-by');
