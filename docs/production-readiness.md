@@ -22,9 +22,9 @@ Use this checklist before exposing the salary management system to production us
 
 ### 3. Backups and recovery
 
-- Define automated database backups, retention, access restrictions, and encryption for the chosen production database.
-- Perform a restore exercise and document the recovery point and recovery time objectives.
-- SQLite is currently configured. If deployment needs multiple API instances, high write concurrency, or managed high availability, move to managed PostgreSQL and verify migrations and backups there.
+- Azure target and initial backup controls are defined in [`azure-backup-and-recovery.md`](./azure-backup-and-recovery.md) and [`infra/azure/postgresql.bicep`](../infra/azure/postgresql.bicep): Azure Database for PostgreSQL Flexible Server on the free-account B1ms offer, automated PITR backups, seven-day retention, local backup redundancy, TLS, IP-restricted public access, and HA disabled.
+- Pending deployment: migrate the app from SQLite to PostgreSQL, deploy the Azure resources, confirm backup jobs and access settings, and perform a timed restore exercise to verify the two-hour RTO. Do not treat this item as production-complete until those checks pass.
+- SQLite is retained as the source/backup for the one-time data migration. Local development now uses PostgreSQL; do not deploy production salary data until the Azure PostgreSQL deployment and timed restore exercise have passed.
 
 ### 4. Monitoring and incident response
 
