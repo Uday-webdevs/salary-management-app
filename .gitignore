@@ -6,4 +6,5 @@ client/.vite/
 .env
 server/prisma/dev.db
 server/prisma/dev.db-journal
+/dev.db
 server/src/generated/prisma/
