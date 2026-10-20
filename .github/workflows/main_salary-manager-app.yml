@@ -23,11 +23,14 @@ jobs:
         with:
           node-version: '24.x'
 
-      - name: npm install, build, and test
-        run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+      - name: Install dependencies (Workspace clean install)
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: npm run db:generate -w server
+
+      - name: Build Monorepo (Client and Server)
+        run: npm run build
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
